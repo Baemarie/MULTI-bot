@@ -1,0 +1,30 @@
+modules = ["web", "nodejs-20", "bash", "nix"]
+[agent]
+expertMode = true
+
+[nix]
+channel = "stable-25_05"
+packages = ["chromium", "nss", "freetype", "harfbuzz", "fontconfig", "libgbm", "glib", "dbus", "xorg.libX11", "xorg.libXcomposite", "xorg.libXdamage", "xorg.libXext", "xorg.libXfixes", "xorg.libXrandr", "xorg.libxcb", "xorg.libXi", "xorg.libXtst", "xorg.libXcursor", "xorg.libXrender", "xorg.libxshmfence", "at-spi2-atk", "at-spi2-core", "cups", "expat", "mesa", "pango", "alsa-lib"]
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd whatsapp-quiz-bot && bash start-replit.sh"
