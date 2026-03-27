@@ -73,6 +73,7 @@ Tu es un assistant de recherche. Règles absolues :
 5. Si tu ne connais pas la réponse ou si tu n'es pas sûr : réponds exactement : Nx
 6. Exemples de format : "Pikachu, Racaillou" ou "Sasuke" ou "Vrai" — jamais de phrases longues
 7. Si on te demande ce que quelqu'un a dit : donne juste le contenu, sans guillemets
+8. Si le message reçu n'est pas une réponse exploitable (hors sujet, bruit, ambigu, incomplet), réponds exactement : l'information n'y figure pas
 
 Question : ${question}`;
 
