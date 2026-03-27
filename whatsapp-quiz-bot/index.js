@@ -67,7 +67,45 @@ const client = new Client({
 let isReady = false;
 let isQuizMode = false;
 let isStealthMode = false;
-let authorizedUser = null;
+let targetedUserId = null;
+
+const normalizeChatId = (id) => {
+    if (!id) return null;
+    if (typeof id === 'string') return id;
+    if (id._serialized) return id._serialized;
+    if (id.user && id.server) return `${id.user}@${id.server}`;
+    return String(id);
+};
+
+const resolveTargetFromCommand = async (message) => {
+    // 1) Prefer replied message target
+    if (message.hasQuotedMsg) {
+        try {
+            const quoted = await message.getQuotedMessage();
+            const quotedAuthor = normalizeChatId(quoted.author);
+            const quotedFrom = normalizeChatId(quoted.from);
+            return quotedAuthor || quotedFrom;
+        } catch (error) {
+            console.error('⚠️ Impossible de lire le message cité:', error.message);
+        }
+    }
+
+    // 2) Fallback to mentions in command message
+    try {
+        const mentions = await message.getMentions();
+        if (mentions.length > 0) {
+            return normalizeChatId(mentions[0].id);
+        }
+    } catch (error) {
+        console.error('⚠️ Impossible de lire les mentions:', error.message);
+    }
+
+    if (Array.isArray(message.mentionedIds) && message.mentionedIds.length > 0) {
+        return normalizeChatId(message.mentionedIds[0]);
+    }
+
+    return null;
+};
 
 const generateFallbackAnswer = (question) => {
     const lower = question.toLowerCase();
@@ -144,6 +182,24 @@ client.on('message_create', async (message) => {
             console.log('👁️ Stealth mode OFF (owner)');
             return;
         }
+
+        if (text.toLowerCase() === 'next') {
+            const resolvedTargetId = await resolveTargetFromCommand(message);
+            if (!resolvedTargetId) {
+                console.log('⚠️ Commande "next" ignorée: aucune cible (réponds à un message ou tag une personne)');
+                return;
+            }
+
+            targetedUserId = resolvedTargetId;
+            console.log(`🎯 Le mode ciblage a bien ete active (${targetedUserId})`);
+            return;
+        }
+
+        if (text.toLowerCase() === 'nx') {
+            targetedUserId = null;
+            console.log('🎯 Le mode ciblage a bien ete desactive');
+            return;
+        }
     } catch (error) {
         console.error('❌ Command error:', error.message);
     }
@@ -159,6 +215,12 @@ client.on('message', async (message) => {
 
         if (!isQuizMode && !isStealthMode) {
             console.log('📝 No active mode');
+            return;
+        }
+
+        const senderId = normalizeChatId(message.author) || normalizeChatId(message.from);
+        if (targetedUserId && senderId !== targetedUserId) {
+            console.log(`🧲 Message ignoré (ciblage actif sur ${targetedUserId})`);
             return;
         }
 
@@ -221,6 +283,7 @@ client.on('disconnected', (reason) => {
     isReady = false;
     isQuizMode = false;
     isStealthMode = false;
+    targetedUserId = null;
     setTimeout(() => {
         console.log('🔄 Reinitialisation...');
         client.initialize().catch((err) => {
